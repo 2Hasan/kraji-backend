@@ -33,7 +33,7 @@ class OwnershipClaimController extends Controller
         $request->validate(['proof' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:8192']]);
 
         $file = $request->file('proof');
-        $key = Storage::disk('local')->putFile('ownership-proofs/'.$vehicle->id, $file);
+        $key = Storage::disk(config('filesystems.attachments_disk'))->putFile('ownership-proofs/'.$vehicle->id, $file);
 
         $claim = $service->submitClaim($vehicle, $request->user(), $key);
 

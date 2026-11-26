@@ -68,7 +68,7 @@ class ServiceRecordController extends Controller
         $request->validate(['file' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:8192']]);
 
         $file = $request->file('file');
-        $key = Storage::disk('local')->putFile('attachments/'.$record->id, $file);
+        $key = Storage::disk(config('filesystems.attachments_disk'))->putFile('attachments/'.$record->id, $file);
 
         $attachment = ServiceRecordAttachment::create([
             'service_record_id' => $record->id,

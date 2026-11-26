@@ -17,6 +17,6 @@ class AttachmentController extends Controller
     {
         abort_unless($request->hasValidSignature(), 403);
 
-        return Storage::disk('local')->response($attachment->storage_key);
+        return Storage::disk(config('filesystems.attachments_disk'))->response($attachment->storage_key);
     }
 }

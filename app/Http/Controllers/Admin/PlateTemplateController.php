@@ -21,7 +21,7 @@ class PlateTemplateController extends Controller
         ]);
 
         $svg = file_get_contents($request->file('svg')->getRealPath());
-        $key = Storage::disk('local')->putFileAs('plate-templates', $request->file('svg'), $data['code'].'.svg');
+        $key = Storage::disk(config('filesystems.attachments_disk'))->putFileAs('plate-templates', $request->file('svg'), $data['code'].'.svg');
 
         $template = PlateTemplate::create([
             'code' => $data['code'],
