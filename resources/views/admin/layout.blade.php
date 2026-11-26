@@ -58,7 +58,9 @@
   td { padding: 9px 10px; border-bottom: 1px solid var(--line); font-weight: 600; vertical-align: middle; line-height: 1.5; }
   tr:last-child td { border-bottom: 0; }
   .muted { color: var(--muted); font-weight: 500; }
-  .mono { font-family: Consolas, "Courier New", monospace; direction: ltr; display: inline-block; font-size: 12px; white-space: nowrap; }
+  .mono { font-family: Consolas, "Courier New", monospace; direction: ltr; unicode-bidi: isolate; font-size: 12px; white-space: nowrap; }
+  .plate-no { font-family: Consolas, "Courier New", monospace; font-weight: 800; font-size: 13px; letter-spacing: .5px; white-space: nowrap; }
+  bdi[dir="ltr"] { unicode-bidi: isolate; direction: ltr; }
 
   .badge { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
   .b-soon { background: var(--amber-bg); color: var(--amber); }
@@ -97,11 +99,15 @@
 
   .empty { padding: 28px 16px; text-align: center; color: var(--muted); font-weight: 700; font-size: 14px; }
   .pager { padding: 10px 14px; }
-  .pager nav > div { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pager-nav { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .is-disabled { opacity: .45; cursor: default; }
 
   @media (max-width: 900px) {
     .app { grid-template-columns: 1fr; }
-    .side { flex-direction: row; flex-wrap: wrap; align-items: center; }
+    .side { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; align-items: center; gap: 2px; }
+    .side .brand { flex-shrink: 0; }
+    .nav { white-space: nowrap; flex-shrink: 0; }
+    .hide-sm { display: none; }
     .side .foot { display: none; }
     .kpis { grid-template-columns: repeat(2, 1fr); }
     .grid2 { grid-template-columns: 1fr; }

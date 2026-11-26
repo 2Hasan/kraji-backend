@@ -15,7 +15,7 @@
             <td>
               @if ($cr->type === 'delete')<span class="badge b-late">حذف</span>@else<span class="badge b-soon">تعديل</span>@endif
             </td>
-            <td>{{ $cr->serviceRecord?->vehicle?->make }} {{ $cr->serviceRecord?->vehicle?->model }}<span class="sm2 muted">{{ $cr->serviceRecord?->vehicle?->chassis_last4 ? '… '.$cr->serviceRecord->vehicle->chassis_last4 : '' }}</span></td>
+            <td>{{ $cr->serviceRecord?->vehicle?->make }} {{ $cr->serviceRecord?->vehicle?->model }}<span class="sm2 muted"><bdi dir="ltr">{{ $cr->serviceRecord?->vehicle?->chassis_last4 ? '…'.$cr->serviceRecord->vehicle->chassis_last4 : '' }}</bdi></span></td>
             <td class="muted">{{ \Illuminate\Support\Str::limit($cr->reason, 60) }}</td>
             <td class="muted">{{ $cr->created_at->diffForHumans() }}</td>
             <td><a class="btn btn-primary btn-sm" href="{{ route('admin.requests.show', $cr) }}">مراجعة</a></td>
@@ -25,6 +25,6 @@
         @endforelse
       </tbody>
     </table>
-    <div class="pager">{{ $requests->links() }}</div>
+    <div class="pager">@include('admin.partials.pagination', ['paginator' => $requests])</div>
   </div>
 @endsection

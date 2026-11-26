@@ -194,4 +194,25 @@ class AdminWebTest extends TestCase
         $this->post(route('admin.logout'))->assertRedirect(route('admin.login'));
         $this->get('/admin')->assertRedirect(route('admin.login'));
     }
+
+    public function test_signed_in_admin_opening_login_page_goes_to_dashboard(): void
+    {
+        $this->actingAs($this->admin(), 'admin');
+
+        $this->get(route('admin.login'))->assertRedirect(route('admin.dashboard'));
+    }
+
+    public function test_audit_entries_show_arabic_labels_not_class_names(): void
+    {
+        $this->actingAs($this->admin(), 'admin');
+        AuditLog::create([
+            'actor_admin_id' => $this->admin()->id, 'action' => 'ownership_claim.approved',
+            'subject_type' => OwnershipClaim::class, 'subject_id' => 7, 'created_at' => now(),
+        ]);
+
+        $this->get(route('admin.staff.index', ['tab' => 'audit']))
+            ->assertSee('موافقة على ملكية')
+            ->assertSee('طلب ملكية #7')
+            ->assertDontSee('App\Models');
+    }
 }

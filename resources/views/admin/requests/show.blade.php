@@ -12,7 +12,7 @@
       <div class="panel-h"><b>المقارنة</b><span class="badge b-soon">{{ $cr->status === 'pending' ? 'معلّق' : $cr->status }}</span></div>
       <div class="panel-pad">
         @if ($cr->type === 'delete')
-          <div class="box old">سجل الصيانة الحالي</div>
+          <div class="box">السجل الحالي: {{ $cr->serviceRecord?->service_date?->format('Y-m-d') }} · {{ number_format($cr->serviceRecord?->odometer ?? 0) }} كم</div>
           <div class="muted" style="font-size:12px;margin-top:8px">الحذف يخفي السجل بحالة "محذوف بموافقة"، والسجل نفسه يبقى.</div>
         @else
           @foreach ($labels as $key => $label)

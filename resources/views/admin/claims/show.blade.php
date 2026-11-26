@@ -11,7 +11,7 @@
         <div class="box">{{ $claim->vehicle?->make }} {{ $claim->vehicle?->model }} {{ $claim->vehicle?->year }}</div>
 
         <span class="label" style="margin-top:12px">الشاصي (آخر ٤)</span>
-        <div class="box mono">… {{ $claim->vehicle?->chassis_last4 }}</div>
+        <div class="box"><bdi dir="ltr">…{{ $claim->vehicle?->chassis_last4 }}</bdi></div>
 
         <span class="label" style="margin-top:12px">المطالب</span>
         <div class="box">{{ $claimant?->name ?? 'حساب محذوف' }}</div>
@@ -25,7 +25,7 @@
       <div class="panel-h"><b>القرار</b></div>
       <div class="panel-pad">
         @if ($claim->status === 'pending')
-          <form method="POST" action="{{ route('admin.claims.approve', $claim) }}" class="field">
+          <form method="POST" action="{{ route('admin.claims.approve', $claim) }}" class="field" onsubmit="return confirm('تحويل ملكية السيارة لهذا المدعي؟')">
             @csrf
             <label class="label" for="approve-note">ملاحظة (اختيارية)</label>
             <textarea class="input" id="approve-note" name="note" maxlength="1000"></textarea>

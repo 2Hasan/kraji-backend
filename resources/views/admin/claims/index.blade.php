@@ -13,7 +13,7 @@
           <tr>
             <td class="mono">C-{{ $claim->id }}</td>
             <td>{{ $claim->vehicle?->make }} {{ $claim->vehicle?->model }}</td>
-            <td class="mono">… {{ $claim->vehicle?->chassis_last4 }}</td>
+            <td class="muted"><bdi dir="ltr">…{{ $claim->vehicle?->chassis_last4 }}</bdi></td>
             <td class="muted">{{ $claim->created_at->diffForHumans() }}</td>
             <td><a class="btn btn-primary btn-sm" href="{{ route('admin.claims.show', $claim) }}">مراجعة</a></td>
           </tr>
@@ -22,6 +22,6 @@
         @endforelse
       </tbody>
     </table>
-    <div class="pager">{{ $claims->links() }}</div>
+    <div class="pager">@include('admin.partials.pagination', ['paginator' => $claims])</div>
   </div>
 @endsection

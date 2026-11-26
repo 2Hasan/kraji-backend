@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnsureAdminRole;
+use App\Http\Middleware\EnsureAdminSession;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,9 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // من فتح صفحة الدخول وهو مسجّل، يروح للوحة الإدارة مو للصفحة العامة
+        $middleware->redirectUsersTo(fn () => route('admin.dashboard'));
+
         $middleware->alias([
-            'admin' => \App\Http\Middleware\EnsureAdminRole::class,
-            'admin.session' => \App\Http\Middleware\EnsureAdminSession::class,
+            'admin' => EnsureAdminRole::class,
+            'admin.session' => EnsureAdminSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

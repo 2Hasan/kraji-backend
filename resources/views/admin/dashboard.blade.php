@@ -17,7 +17,7 @@
       </div>
       @forelse ($recentLogs as $log)
         <div style="padding:10px 16px;border-bottom:1px solid var(--line);font-size:13px;font-weight:700">
-          {{ $log->action }} <span class="muted">· {{ $log->created_at->diffForHumans() }}</span>
+          {{ $log->actionLabel() }} <span class="muted">· {{ $log->created_at->diffForHumans() }}</span>
         </div>
       @empty
         <div class="empty">ما فيه إجراءات بعد.</div>

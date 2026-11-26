@@ -21,7 +21,7 @@
                 <td>@if ($reviewer->suspended_at)<span class="badge b-late">موقوف</span>@else<span class="badge b-ok">فعّال</span>@endif</td>
                 <td>
                   @unless ($reviewer->suspended_at)
-                    <form method="POST" action="{{ route('admin.staff.suspend', $reviewer) }}">
+                    <form method="POST" action="{{ route('admin.staff.suspend', $reviewer) }}" onsubmit="return confirm(@js('إيقاف '.$reviewer->name.'؟ ما يقدر يدخل اللوحة بعد الإيقاف.'))">
                       @csrf
                       <button class="btn btn-red btn-sm" type="submit">إيقاف</button>
                     </form>
@@ -50,14 +50,14 @@
   @else
     <div class="panel">
       <table>
-        <thead><tr><th>الوقت</th><th>الإجراء</th><th>الجهة</th><th>ملاحظة</th></tr></thead>
+        <thead><tr><th>الوقت</th><th>الإجراء</th><th>الجهة</th><th class="hide-sm">ملاحظة</th></tr></thead>
         <tbody>
           @forelse ($logs as $log)
             <tr>
-              <td class="muted">{{ $log->created_at->format('Y-m-d H:i') }}</td>
-              <td class="mono">{{ $log->action }}</td>
-              <td class="mono">{{ $log->subject_type }}#{{ $log->subject_id }}</td>
-              <td class="muted">{{ $log->note }}</td>
+              <td class="muted" style="white-space:nowrap">{{ $log->created_at->format('Y-m-d H:i') }}</td>
+              <td>{{ $log->actionLabel() }}</td>
+              <td class="muted">{{ $log->subjectLabel() }}</td>
+              <td class="muted hide-sm">{{ $log->note }}</td>
             </tr>
           @empty
             <tr><td colspan="4" class="empty">السجل فاضي.</td></tr>
