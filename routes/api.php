@@ -1,17 +1,18 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\PlateTemplateController as AdminPlateTemplateController;
 use App\Http\Controllers\Api\AccountController;
+use App\Http\Controllers\Api\AttachmentController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ChangeRequestController;
 use App\Http\Controllers\Api\DataExportController;
 use App\Http\Controllers\Api\DeviceController;
-use App\Http\Controllers\Api\PlateTemplateController;
-use App\Http\Controllers\Api\AttachmentController;
-use App\Http\Controllers\Api\ChangeRequestController;
 use App\Http\Controllers\Api\MaintenanceScheduleController;
 use App\Http\Controllers\Api\OwnershipClaimController;
+use App\Http\Controllers\Api\PlateTemplateController;
 use App\Http\Controllers\Api\ServiceRecordController;
+use App\Http\Controllers\Api\ServiceTypeController;
 use App\Http\Controllers\Api\VehicleController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +36,7 @@ Route::middleware('auth:sanctum')->get('/account/export', [DataExportController:
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/devices', [DeviceController::class, 'store']);
     Route::get('/plate-templates', [PlateTemplateController::class, 'index']);
+    Route::get('/service-types', [ServiceTypeController::class, 'index']);
 });
 
 // السيارات: لا يوجد DELETE، الإجراء الوحيد أرشفة

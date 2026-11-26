@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ServiceType;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -12,6 +13,17 @@ use Tests\TestCase;
 class VehicleTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_service_types_list_is_available_to_signed_in_users(): void
+    {
+        ServiceType::create([
+            'code' => 'engine_oil', 'name_ar' => 'زيت المحرك', 'name_en' => 'Engine oil',
+            'default_interval_km' => 10000, 'default_interval_months' => 12,
+        ]);
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->getJson('/api/service-types')->assertOk()->assertJsonPath('0.code', 'engine_oil');
+    }
 
     private function payload(array $overrides = []): array
     {

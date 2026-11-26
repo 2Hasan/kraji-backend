@@ -9,7 +9,7 @@ use App\Models\ServiceType;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -19,7 +19,9 @@ class AccountDeletionTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private Vehicle $vehicle;
+
     private ServiceRecord $record;
 
     protected function setUp(): void
@@ -46,7 +48,7 @@ class AccountDeletionTest extends TestCase
         $this->record = ServiceRecord::findOrFail($recordId);
 
         $this->postJson("/api/service-records/{$recordId}/attachments", [
-            'file' => \Illuminate\Http\UploadedFile::fake()->image('invoice.jpg'),
+            'file' => UploadedFile::fake()->image('invoice.jpg'),
         ])->assertCreated();
     }
 
@@ -59,6 +61,18 @@ class AccountDeletionTest extends TestCase
         $this->assertNull(User::withTrashed()->find($this->user->id)->email);
         $this->assertNull(User::withTrashed()->find($this->user->id)->name);
         $this->assertNotNull(User::withTrashed()->find($this->user->id)->deleted_at);
+    }
+
+    public function test_invoice_image_is_blurred_on_deletion(): void
+    {
+        $attachment = ServiceRecordAttachment::firstOrFail();
+        $originalBytes = Storage::disk('local')->get($attachment->storage_key);
+
+        $this->deleteJson('/api/account', ['password' => 'secret-pass-123'])->assertOk();
+
+        $this->assertNotNull($attachment->fresh()->redacted_at);
+        $this->assertTrue(Storage::disk('local')->exists($attachment->storage_key));
+        $this->assertNotSame($originalBytes, Storage::disk('local')->get($attachment->storage_key));
     }
 
     public function test_records_are_kept_and_show_deleted_creator(): void
