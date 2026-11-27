@@ -9,12 +9,15 @@ use App\Http\Controllers\Api\ChangeRequestController;
 use App\Http\Controllers\Api\DataExportController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\MaintenanceScheduleController;
+use App\Http\Controllers\Api\MyOwnershipClaimController;
+use App\Http\Controllers\Api\NotificationSettingsController;
 use App\Http\Controllers\Api\OdometerController;
 use App\Http\Controllers\Api\OwnershipClaimController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PlateTemplateController;
 use App\Http\Controllers\Api\ServiceRecordController;
 use App\Http\Controllers\Api\ServiceTypeController;
+use App\Http\Controllers\Api\VehicleChangeRequestController;
 use App\Http\Controllers\Api\VehicleController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -53,6 +56,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/vehicles/{vehicle}', [VehicleController::class, 'update']);
     Route::post('/vehicles/{vehicle}/archive', [VehicleController::class, 'archive']);
     Route::get('/vehicles/{vehicle}/schedules', [MaintenanceScheduleController::class, 'index']);
+    Route::get('/vehicles/{vehicle}/change-requests', [VehicleChangeRequestController::class, 'index']);
+    Route::get('/ownership-claims', [MyOwnershipClaimController::class, 'index']);
+    Route::get('/me', fn (\Illuminate\Http\Request $request) => response()->json($request->user()->only(['id', 'name', 'email', 'locale'])));
+    Route::get('/account/notification-settings', [NotificationSettingsController::class, 'show']);
+    Route::patch('/account/notification-settings', [NotificationSettingsController::class, 'update']);
     Route::post('/vehicles/{vehicle}/odometer', [OdometerController::class, 'store']);
     Route::patch('/schedules/{schedule}', [MaintenanceScheduleController::class, 'update']);
 

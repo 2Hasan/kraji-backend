@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
+use App\Services\ReminderService;
+use App\Services\ScheduleTemplateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -12,7 +14,18 @@ class VehicleController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        return response()->json(Vehicle::where('owner_user_id', $request->user()->id)->get());
+        $reminders = app(ReminderService::class);
+        $now = now();
+
+        $vehicles = Vehicle::where('owner_user_id', $request->user()->id)
+            ->get()
+            ->map(fn (Vehicle $vehicle) => $vehicle->toArray() + [
+                // يطلب تحديث العداد فقط إذا آخر قراءة قبل 14 يوم أو ما فيه قراءة
+                'needs_odometer_update' => $vehicle->status === 'active'
+                    && $reminders->needsOdometerPrompt($vehicle, $now),
+            ]);
+
+        return response()->json($vehicles);
     }
 
     public function store(Request $request): JsonResponse
@@ -24,6 +37,8 @@ class VehicleController extends Controller
             'year' => ['nullable', 'integer', 'between:1950,2100'],
             'current_odometer' => ['nullable', 'integer', 'min:0'],
             'plate_number' => ['nullable', 'string', 'max:20'],
+            'plate_style' => ['sometimes', 'string', 'in:classic,carbon,blue'],
+            'plate_visible' => ['sometimes', 'boolean'],
             'nickname' => ['nullable', 'string', 'max:60'],
         ]);
 
@@ -41,7 +56,7 @@ class VehicleController extends Controller
             'source' => 'manual',
         ]);
 
-        app(\App\Services\ScheduleTemplateService::class)->copyDefaultsTo($vehicle);
+        app(ScheduleTemplateService::class)->copyDefaultsTo($vehicle);
 
         return response()->json($vehicle->fresh(), 201);
     }
