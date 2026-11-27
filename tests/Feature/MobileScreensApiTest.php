@@ -112,6 +112,19 @@ class MobileScreensApiTest extends TestCase
         $this->getJson('/api/ownership-claims')->assertOk()->assertJsonCount(0);
     }
 
+    public function test_service_types_come_with_arabic_names(): void
+    {
+        ServiceType::create([
+            'code' => 'engine_oil', 'name_ar' => 'زيت المحرك', 'name_en' => 'Engine oil',
+            'default_interval_km' => 10000, 'default_interval_months' => 12,
+        ]);
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->getJson('/api/service-types')
+            ->assertOk()
+            ->assertJsonPath('0.name_ar', 'زيت المحرك');
+    }
+
     public function test_notification_settings_default_on_and_can_be_turned_off(): void
     {
         Sanctum::actingAs(User::factory()->create());
