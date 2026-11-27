@@ -44,6 +44,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // المشرف فقط
         Route::middleware('admin.session:admin')->group(function () {
+            Route::get('/vehicles/{vehicle}/edit', [VehicleController::class, 'edit'])->name('vehicles.edit');
+            Route::post('/vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
+            Route::post('/vehicles/{vehicle}/archive', [VehicleController::class, 'archive'])->name('vehicles.archive');
+            Route::post('/vehicles/{vehicle}/restore', [VehicleController::class, 'restore'])->name('vehicles.restore');
+
             Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
             Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
             Route::post('/staff/{reviewer}/suspend', [StaffController::class, 'suspend'])->name('staff.suspend');

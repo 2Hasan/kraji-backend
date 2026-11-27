@@ -11,7 +11,7 @@
   <div class="panel">
     <table>
       <thead>
-        <tr><th>السيارة</th><th class="hide-sm">سنة</th><th>الشاصي</th><th>رقم اللوحة</th><th>العداد</th><th>الحالة</th></tr>
+        <tr><th>السيارة</th><th class="hide-sm">سنة</th><th>الشاصي</th><th>رقم اللوحة</th><th>العداد</th><th>الحالة</th><th></th></tr>
       </thead>
       <tbody>
         @forelse ($vehicles as $vehicle)
@@ -31,9 +31,25 @@
             <td>
               @if ($vehicle->status === 'active')<span class="badge b-ok">نشطة</span>@else<span class="badge b-gray">مؤرشفة</span>@endif
             </td>
+            <td style="white-space:nowrap">
+              @if (auth('admin')->user()?->role === 'admin')
+                <a class="btn btn-ghost btn-sm" href="{{ route('admin.vehicles.edit', $vehicle) }}">تعديل</a>
+                @if ($vehicle->status === 'active')
+                  <form method="POST" action="{{ route('admin.vehicles.archive', $vehicle) }}" style="display:inline">
+                    @csrf
+                    <button class="btn btn-ghost btn-sm" type="submit">أرشفة</button>
+                  </form>
+                @else
+                  <form method="POST" action="{{ route('admin.vehicles.restore', $vehicle) }}" style="display:inline">
+                    @csrf
+                    <button class="btn btn-green btn-sm" type="submit">استرجاع</button>
+                  </form>
+                @endif
+              @endif
+            </td>
           </tr>
         @empty
-          <tr><td colspan="6" class="empty">ما فيه سيارات.</td></tr>
+          <tr><td colspan="7" class="empty">ما فيه سيارات.</td></tr>
         @endforelse
       </tbody>
     </table>

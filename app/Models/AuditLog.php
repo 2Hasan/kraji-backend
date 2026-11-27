@@ -25,6 +25,9 @@ class AuditLog extends Model
             'ownership_claim.rejected' => 'رفض طلب ملكية',
             'reviewer.created' => 'إضافة مراجع',
             'reviewer.suspended' => 'إيقاف مراجع',
+            'vehicle.updated' => 'تعديل سيارة',
+            'vehicle.archived' => 'أرشفة سيارة',
+            'vehicle.restored' => 'استرجاع سيارة',
             default => $this->action,
         };
     }
