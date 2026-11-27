@@ -40,16 +40,16 @@ class PlateStyleApiTest extends TestCase
             ->assertJsonPath('plate_style', 'plc-classic');
     }
 
-    public function test_template_from_another_body_type_is_rejected(): void
+    public function test_template_sets_the_vehicle_car_type(): void
     {
         Storage::fake(config('filesystems.attachments_disk'));
-        $this->activeTemplate('sedan-1', 'sedan');
+        $this->activeTemplate('sedan-1', 'نقل خاص');
         Sanctum::actingAs(User::factory()->create());
 
         $this->postJson('/api/vehicles', [
             'chassis_no' => 'JN1AZ34E12345678X', 'make' => 'Nissan', 'model' => '370Z',
-            'body_type' => 'PLC', 'plate_style' => 'sedan-1',
-        ])->assertUnprocessable()->assertJsonValidationErrors('plate_style');
+            'plate_style' => 'sedan-1',
+        ])->assertCreated()->assertJsonPath('body_type', 'نقل خاص');
     }
 
     public function test_draft_template_cannot_be_used_for_a_vehicle(): void

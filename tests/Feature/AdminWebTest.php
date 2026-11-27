@@ -180,10 +180,10 @@ class AdminWebTest extends TestCase
         $svg = UploadedFile::fake()->createWithContent('t.svg', '<svg><text>{{plate_number}}</text></svg>');
 
         $this->post(route('admin.plate-templates.store'), [
-            'code' => 'classic-1', 'name' => 'كلاسيك', 'body_type' => 'sedan', 'svg' => $svg,
+            'name' => 'نقل خاص', 'svg' => $svg,
         ])->assertRedirect(route('admin.plate-templates.index'));
 
-        $this->assertDatabaseHas('plate_templates', ['code' => 'classic-1', 'status' => 'draft']);
+        $this->assertDatabaseHas('plate_templates', ['name' => 'نقل خاص', 'body_type' => 'نقل خاص', 'status' => 'draft']);
         $this->assertSame(0, AuditLog::count());
     }
 

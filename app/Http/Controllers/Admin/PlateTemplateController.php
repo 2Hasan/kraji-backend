@@ -14,19 +14,18 @@ class PlateTemplateController extends Controller
     public function store(Request $request, PlateTemplateValidator $validator): JsonResponse
     {
         $data = $request->validate([
-            'code' => ['required', 'alpha_dash', 'max:60', 'unique:plate_templates,code'],
-            'name' => ['required', 'string', 'max:120'],
-            'body_type' => ['required', 'string', 'max:40'],
+            'name' => ['required', 'string', 'max:40'],
             'svg' => ['required', 'file', 'mimetypes:image/svg+xml,text/plain,text/xml', 'max:512'],
         ]);
 
+        $code = PlateTemplate::newCode();
         $svg = file_get_contents($request->file('svg')->getRealPath());
-        $key = Storage::disk(config('filesystems.attachments_disk'))->putFileAs('plate-templates', $request->file('svg'), $data['code'].'.svg');
+        $key = Storage::disk(config('filesystems.attachments_disk'))->putFileAs('plate-templates', $request->file('svg'), $code.'.svg');
 
         $template = PlateTemplate::create([
-            'code' => $data['code'],
+            'code' => $code,
             'name' => $data['name'],
-            'body_type' => $data['body_type'],
+            'body_type' => $data['name'],
             'svg_storage_key' => $key,
             'status' => 'draft',
             'validation_errors' => $validator->validate($svg),

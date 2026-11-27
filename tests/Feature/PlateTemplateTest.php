@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\AdminUser;
-use App\Models\PlateTemplate;
 use App\Models\User;
 use App\Services\PlateTemplateValidator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -28,7 +27,7 @@ class PlateTemplateTest extends TestCase
 
     public function test_template_without_placeholder_is_rejected(): void
     {
-        $errors = (new PlateTemplateValidator())->validate('<svg><text>12345</text></svg>');
+        $errors = (new PlateTemplateValidator)->validate('<svg><text>12345</text></svg>');
 
         $this->assertContains('لازم يحتوي {{plate_number}} مرة وحدة.', $errors);
     }
@@ -37,7 +36,7 @@ class PlateTemplateTest extends TestCase
     {
         $svg = str_replace('</svg>', '<script>alert(1)</script></svg>', self::GOOD);
 
-        $this->assertNotEmpty((new PlateTemplateValidator())->validate($svg));
+        $this->assertNotEmpty((new PlateTemplateValidator)->validate($svg));
     }
 
     public function test_activation_requires_no_errors(): void
@@ -59,20 +58,20 @@ class PlateTemplateTest extends TestCase
         Sanctum::actingAs($this->admin());
 
         $carId = $this->postJson('/api/admin/plate-templates', [
-            'code' => 'car-ok', 'name' => 'سيارة', 'body_type' => 'car',
+            'name' => 'سيارة',
             'svg' => UploadedFile::fake()->createWithContent('car.svg', self::GOOD),
         ])->json('id');
         $this->postJson("/api/admin/plate-templates/{$carId}/activate")->assertOk();
 
         $bikeId = $this->postJson('/api/admin/plate-templates', [
-            'code' => 'bike-ok', 'name' => 'دراجة', 'body_type' => 'motorcycle',
+            'name' => 'دراجة',
             'svg' => UploadedFile::fake()->createWithContent('bike.svg', self::GOOD),
         ])->json('id');
         $this->postJson("/api/admin/plate-templates/{$bikeId}/activate")->assertOk();
 
         Sanctum::actingAs(User::factory()->create());
-        $codes = collect($this->getJson('/api/plate-templates?body_type=car')->assertOk()->json())->pluck('code');
+        $names = collect($this->getJson('/api/plate-templates?body_type=سيارة')->assertOk()->json())->pluck('name');
 
-        $this->assertSame(['car-ok'], $codes->all());
+        $this->assertSame(['سيارة'], $names->all());
     }
 }

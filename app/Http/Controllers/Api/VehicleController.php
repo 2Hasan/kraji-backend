@@ -37,12 +37,13 @@ class VehicleController extends Controller
             'model' => ['required', 'string', 'max:60'],
             'year' => ['nullable', 'integer', 'between:1950,2100'],
             'current_odometer' => ['nullable', 'integer', 'min:0'],
-            'body_type' => ['nullable', 'string', 'max:40'],
             'plate_number' => ['nullable', 'string', 'max:20'],
-            'plate_style' => ['sometimes', 'string', 'max:40', $this->plateStyleRule($request->input('body_type'))],
+            'plate_style' => ['sometimes', 'string', 'max:40', $this->plateStyleRule()],
             'plate_visible' => ['sometimes', 'boolean'],
             'nickname' => ['nullable', 'string', 'max:60'],
         ]);
+
+        $data['body_type'] = $this->bodyTypeFor($data['plate_style'] ?? null);
 
         $hash = Vehicle::hashChassis($data['chassis_no']);
         if (Vehicle::where('chassis_hash', $hash)->where('status', 'active')->exists()) {
@@ -74,18 +75,19 @@ class VehicleController extends Controller
     {
         $this->authorize('update', $vehicle);
 
-        $bodyType = $request->input('body_type', $vehicle->body_type);
-
         $data = $request->validate([
             'make' => ['sometimes', 'string', 'max:60'],
             'model' => ['sometimes', 'string', 'max:60'],
             'year' => ['sometimes', 'nullable', 'integer', 'between:1950,2100'],
-            'body_type' => ['sometimes', 'nullable', 'string', 'max:40'],
             'plate_number' => ['sometimes', 'nullable', 'string', 'max:20'],
-            'plate_style' => ['sometimes', 'string', 'max:40', $this->plateStyleRule($bodyType)],
+            'plate_style' => ['sometimes', 'string', 'max:40', $this->plateStyleRule()],
             'plate_visible' => ['sometimes', 'boolean'],
             'nickname' => ['sometimes', 'nullable', 'string', 'max:60'],
         ]);
+
+        if (array_key_exists('plate_style', $data)) {
+            $data['body_type'] = $this->bodyTypeFor($data['plate_style']);
+        }
 
         $vehicle->update($data);
 
@@ -93,26 +95,33 @@ class VehicleController extends Controller
     }
 
     /**
-     * النمط إما من الأنماط الثلاثة القديمة، أو كود قالب مفعّل تابع لنوع الهيكل نفسه.
+     * النمط إما من الأنماط الثلاثة القديمة، أو كود قالب مفعّل. القالب نفسه يحدد نوع السيارة.
      *
      * @return \Closure(string, mixed, \Closure): void
      */
-    private function plateStyleRule(?string $bodyType): \Closure
+    private function plateStyleRule(): \Closure
     {
-        return function (string $attribute, mixed $value, \Closure $fail) use ($bodyType): void {
+        return function (string $attribute, mixed $value, \Closure $fail): void {
             if (in_array($value, ['classic', 'carbon', 'blue'], true)) {
                 return;
             }
 
-            $exists = PlateTemplate::where('code', $value)
-                ->where('status', 'active')
-                ->where('body_type', $bodyType)
-                ->exists();
+            $exists = PlateTemplate::where('code', $value)->where('status', 'active')->exists();
 
             if (! $exists) {
-                $fail('القالب المختار غير متوفر لنوع السيارة.');
+                $fail('القالب المختار غير متوفر.');
             }
         };
+    }
+
+    /** نوع السيارة يُشتق من القالب المختار، والأنماط القديمة ما لها نوع. */
+    private function bodyTypeFor(?string $plateStyle): ?string
+    {
+        if ($plateStyle === null || in_array($plateStyle, ['classic', 'carbon', 'blue'], true)) {
+            return null;
+        }
+
+        return PlateTemplate::where('code', $plateStyle)->value('body_type');
     }
 
     public function archive(Request $request, Vehicle $vehicle): JsonResponse

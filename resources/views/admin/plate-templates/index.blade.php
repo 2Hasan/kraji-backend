@@ -6,13 +6,11 @@
   <div class="grid2">
     <div class="panel">
       <table>
-        <thead><tr><th>الرمز</th><th>الاسم</th><th>نوع الهيكل</th><th>الحالة</th><th></th></tr></thead>
+        <thead><tr><th>نوع السيارة</th><th>الحالة</th><th></th></tr></thead>
         <tbody>
           @forelse ($templates as $template)
             <tr>
-              <td class="mono">{{ $template->code }}</td>
               <td>{{ $template->name }}</td>
-              <td class="muted">{{ $template->body_type }}</td>
               <td>
                 @if ($template->status === 'active')
                   <span class="badge b-ok">مفعّل</span>
@@ -41,7 +39,7 @@
               </td>
             </tr>
           @empty
-            <tr><td colspan="5" class="empty">ما فيه قوالب بعد.</td></tr>
+            <tr><td colspan="3" class="empty">ما فيه قوالب بعد.</td></tr>
           @endforelse
         </tbody>
       </table>
@@ -51,9 +49,7 @@
       <div class="panel-h"><b>رفع قالب</b></div>
       <form method="POST" action="{{ route('admin.plate-templates.store') }}" enctype="multipart/form-data" class="panel-pad">
         @csrf
-        <div class="field"><label class="label" for="p-code">الرمز (حروف إنجليزية وأرقام)</label><input class="input" id="p-code" name="code" required maxlength="60" value="{{ old('code') }}"></div>
-        <div class="field"><label class="label" for="p-name">الاسم</label><input class="input" id="p-name" name="name" required maxlength="120" value="{{ old('name') }}"></div>
-        <div class="field"><label class="label" for="p-body">نوع الهيكل</label><input class="input" id="p-body" name="body_type" required maxlength="40" value="{{ old('body_type') }}"></div>
+        <div class="field"><label class="label" for="p-name">نوع السيارة (مثل: خصوصي، نقل خاص)</label><input class="input" id="p-name" name="name" required maxlength="40" value="{{ old('name') }}"></div>
         <div class="field"><label class="label" for="p-svg">ملف SVG (يحتوي @{{plate_number}} مرة وحدة)</label><input class="input" id="p-svg" name="svg" type="file" accept=".svg,image/svg+xml" required></div>
         <button class="btn btn-primary" type="submit">رفع كمسودة</button>
       </form>
