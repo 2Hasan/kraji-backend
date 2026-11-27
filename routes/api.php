@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\ServiceRecordController;
 use App\Http\Controllers\Api\ServiceTypeController;
 use App\Http\Controllers\Api\VehicleChangeRequestController;
 use App\Http\Controllers\Api\VehicleController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +44,7 @@ Route::middleware('auth:sanctum')->get('/account/export', [DataExportController:
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/devices', [DeviceController::class, 'store']);
     Route::get('/plate-templates', [PlateTemplateController::class, 'index']);
+    Route::get('/plate-templates/{code}/svg', [PlateTemplateController::class, 'svg']);
     Route::get('/service-types', [ServiceTypeController::class, 'index']);
 });
 
@@ -58,7 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/vehicles/{vehicle}/schedules', [MaintenanceScheduleController::class, 'index']);
     Route::get('/vehicles/{vehicle}/change-requests', [VehicleChangeRequestController::class, 'index']);
     Route::get('/ownership-claims', [MyOwnershipClaimController::class, 'index']);
-    Route::get('/me', fn (\Illuminate\Http\Request $request) => response()->json($request->user()->only(['id', 'name', 'email', 'locale'])));
+    Route::get('/me', fn (Request $request) => response()->json($request->user()->only(['id', 'name', 'email', 'locale'])));
     Route::get('/account/notification-settings', [NotificationSettingsController::class, 'show']);
     Route::patch('/account/notification-settings', [NotificationSettingsController::class, 'update']);
     Route::post('/vehicles/{vehicle}/odometer', [OdometerController::class, 'store']);
