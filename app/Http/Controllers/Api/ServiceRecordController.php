@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Exceptions\OdometerRegressionException;
 use App\Http\Controllers\Controller;
+use App\Models\OdometerReading;
 use App\Models\ServiceRecord;
 use App\Models\ServiceRecordAttachment;
 use App\Models\Vehicle;
 use App\Services\OdometerGuard;
+use App\Services\ReminderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -15,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 
 class ServiceRecordController extends Controller
 {
-    public function store(Request $request, Vehicle $vehicle, OdometerGuard $guard): JsonResponse
+    public function store(Request $request, Vehicle $vehicle, OdometerGuard $guard, ReminderService $reminders): JsonResponse
     {
         $this->authorize('update', $vehicle);
 
@@ -40,9 +42,18 @@ class ServiceRecordController extends Controller
             'created_by_user_id' => $request->user()->id,
         ]);
 
+        OdometerReading::create([
+            'vehicle_id' => $vehicle->id,
+            'km' => $data['odometer'],
+            'recorded_at' => now(),
+            'source' => 'service_record',
+        ]);
+
         if ($data['odometer'] > $vehicle->current_odometer) {
             $vehicle->update(['current_odometer' => $data['odometer']]);
         }
+
+        $reminders->markServiced($record);
 
         return response()->json($record->fresh(), 201);
     }

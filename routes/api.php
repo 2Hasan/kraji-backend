@@ -9,7 +9,9 @@ use App\Http\Controllers\Api\ChangeRequestController;
 use App\Http\Controllers\Api\DataExportController;
 use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\Api\MaintenanceScheduleController;
+use App\Http\Controllers\Api\OdometerController;
 use App\Http\Controllers\Api\OwnershipClaimController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\PlateTemplateController;
 use App\Http\Controllers\Api\ServiceRecordController;
 use App\Http\Controllers\Api\ServiceTypeController;
@@ -28,6 +30,8 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
+    Route::post('/forgot-password', [PasswordResetController::class, 'forgot'])->middleware('throttle:5,1');
+    Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:10,1');
 });
 
 Route::middleware('auth:sanctum')->delete('/account', [AccountController::class, 'destroy']);
@@ -48,6 +52,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/vehicles/{vehicle}', [VehicleController::class, 'show']);
     Route::patch('/vehicles/{vehicle}', [VehicleController::class, 'update']);
     Route::post('/vehicles/{vehicle}/archive', [VehicleController::class, 'archive']);
+    Route::get('/vehicles/{vehicle}/schedules', [MaintenanceScheduleController::class, 'index']);
+    Route::post('/vehicles/{vehicle}/odometer', [OdometerController::class, 'store']);
     Route::patch('/schedules/{schedule}', [MaintenanceScheduleController::class, 'update']);
 
     Route::get('/vehicles/{vehicle}/service-records', [ServiceRecordController::class, 'index']);

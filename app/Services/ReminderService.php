@@ -4,13 +4,16 @@ namespace App\Services;
 
 use App\Models\MaintenanceSchedule;
 use App\Models\OdometerReading;
+use App\Models\ServiceRecord;
 use App\Models\Vehicle;
 use Illuminate\Support\Carbon;
 
 class ReminderService
 {
     public const KM_THRESHOLD = 500;
+
     public const DAYS_THRESHOLD = 14;
+
     public const ODOMETER_PROMPT_DAYS = 14;
 
     public function isDue(MaintenanceSchedule $schedule, int $currentKm, Carbon $today): bool
@@ -26,6 +29,26 @@ class ReminderService
         }
 
         return false;
+    }
+
+    /**
+     * بعد تسجيل صيانة: نحسب موعد الصيانة الجاية لكل جدول بنفس النوع.
+     * الكيلومترات من العداد وقت الصيانة، والتاريخ من تاريخ الصيانة.
+     */
+    public function markServiced(ServiceRecord $record): void
+    {
+        MaintenanceSchedule::where('vehicle_id', $record->vehicle_id)
+            ->where('service_type_id', $record->service_type_id)
+            ->get()
+            ->each(function (MaintenanceSchedule $schedule) use ($record) {
+                $schedule->update([
+                    'last_service_record_id' => $record->id,
+                    'next_due_km' => $schedule->interval_km !== null ? $record->odometer + $schedule->interval_km : null,
+                    'next_due_date' => $schedule->interval_months !== null
+                        ? $record->service_date->copy()->addMonths($schedule->interval_months)
+                        : null,
+                ]);
+            });
     }
 
     /** نطلب تحديث العداد فقط إذا آخر قراءة قبل 14 يوم أو أكثر، ومرة كل 14 يوم كحد أقصى. */
