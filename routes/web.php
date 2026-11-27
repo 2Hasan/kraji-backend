@@ -48,6 +48,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/vehicles/{vehicle}', [VehicleController::class, 'update'])->name('vehicles.update');
             Route::post('/vehicles/{vehicle}/archive', [VehicleController::class, 'archive'])->name('vehicles.archive');
             Route::post('/vehicles/{vehicle}/restore', [VehicleController::class, 'restore'])->name('vehicles.restore');
+            Route::post('/vehicles/{vehicle}/destroy', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
 
             Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
             Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');

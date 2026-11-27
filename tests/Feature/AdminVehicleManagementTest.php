@@ -8,6 +8,7 @@ use App\Models\PlateTemplate;
 use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdminVehicleManagementTest extends TestCase
@@ -100,5 +101,48 @@ class AdminVehicleManagementTest extends TestCase
         $this->post(route('admin.vehicles.update', $vehicle), ['make' => 'X', 'model' => 'Y', 'plate_style' => 'classic'])->assertForbidden();
         $this->post(route('admin.vehicles.archive', $vehicle))->assertForbidden();
         $this->assertSame('active', $vehicle->fresh()->status);
+    }
+
+    public function test_permanent_delete_works_only_for_archived_vehicles(): void
+    {
+        $vehicle = $this->vehicle();
+        $this->actingAs($this->admin(), 'admin');
+
+        $this->post(route('admin.vehicles.destroy', $vehicle), ['confirm' => 'حذف نهائي'])->assertUnprocessable();
+        $this->assertNotNull(Vehicle::find($vehicle->id));
+    }
+
+    public function test_permanent_delete_needs_the_exact_confirmation_text(): void
+    {
+        $vehicle = $this->vehicle();
+        $vehicle->update(['status' => 'archived']);
+        $this->actingAs($this->admin(), 'admin');
+
+        $this->post(route('admin.vehicles.destroy', $vehicle), ['confirm' => 'حذف'])->assertSessionHasErrors('confirm');
+        $this->assertNotNull(Vehicle::find($vehicle->id));
+    }
+
+    public function test_permanent_delete_removes_vehicle_records_and_is_audited(): void
+    {
+        Storage::fake(config('filesystems.attachments_disk'));
+        $vehicle = $this->vehicle();
+        $vehicle->update(['status' => 'archived']);
+        $this->actingAs($this->admin(), 'admin');
+
+        $this->post(route('admin.vehicles.destroy', $vehicle), ['confirm' => 'حذف نهائي'])
+            ->assertRedirect(route('admin.vehicles.index'));
+
+        $this->assertNull(Vehicle::find($vehicle->id));
+        $this->assertDatabaseHas('audit_logs', ['action' => 'vehicle.deleted', 'subject_id' => $vehicle->id]);
+    }
+
+    public function test_reviewer_cannot_permanently_delete(): void
+    {
+        $vehicle = $this->vehicle();
+        $vehicle->update(['status' => 'archived']);
+        $this->actingAs($this->admin('reviewer'), 'admin');
+
+        $this->post(route('admin.vehicles.destroy', $vehicle), ['confirm' => 'حذف نهائي'])->assertForbidden();
+        $this->assertNotNull(Vehicle::find($vehicle->id));
     }
 }

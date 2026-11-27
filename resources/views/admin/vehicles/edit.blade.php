@@ -32,4 +32,15 @@
       </div>
     </form>
   </div>
+  @if ($vehicle->status === 'archived')
+    <div class="panel" style="max-width:640px;margin-top:16px;border-color:var(--red)">
+      <div class="panel-h"><b style="color:var(--red)">حذف نهائي</b></div>
+      <form method="POST" action="{{ route('admin.vehicles.destroy', $vehicle) }}" class="panel-pad">
+        @csrf
+        <p class="sm2 muted">يمسح السيارة وكل سجل صيانتها والمرفقات وإثباتات الملكية. ما يرجع بعد الحذف. اكتب <b>حذف نهائي</b> للتأكيد.</p>
+        <div class="field"><input class="input" name="confirm" required placeholder="حذف نهائي"></div>
+        <button class="btn btn-red btn-sm" type="submit">حذف نهائي</button>
+      </form>
+    </div>
+  @endif
 @endsection

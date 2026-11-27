@@ -28,6 +28,7 @@ class AuditLog extends Model
             'vehicle.updated' => 'تعديل سيارة',
             'vehicle.archived' => 'أرشفة سيارة',
             'vehicle.restored' => 'استرجاع سيارة',
+            'vehicle.deleted' => 'حذف سيارة نهائياً',
             default => $this->action,
         };
     }

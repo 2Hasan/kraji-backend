@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Admin\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminUser;
+use App\Models\OwnershipClaim;
 use App\Models\PlateTemplate;
+use App\Models\ServiceRecord;
+use App\Models\ServiceRecordAttachment;
 use App\Models\Vehicle;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class VehicleController extends Controller
@@ -88,6 +93,34 @@ class VehicleController extends Controller
         $audit->record($this->admin(), 'vehicle.restored', Vehicle::class, $vehicle->id);
 
         return redirect()->route('admin.vehicles.index')->with('status', 'تم إرجاع السيارة للنشط.');
+    }
+
+    /**
+     * حذف نهائي: فقط للسيارة المؤرشفة، ويتطلب كتابة عبارة التأكيد. يمسح السجل وملفات المرفقات والإثباتات.
+     */
+    public function destroy(Request $request, Vehicle $vehicle, AuditLogger $audit): RedirectResponse
+    {
+        abort_unless($vehicle->status === 'archived', 422);
+        $request->validate(['confirm' => ['required', 'in:حذف نهائي']]);
+
+        $recordIds = ServiceRecord::where('vehicle_id', $vehicle->id)->pluck('id');
+        $storageKeys = ServiceRecordAttachment::whereIn('service_record_id', $recordIds)->pluck('storage_key')
+            ->merge(OwnershipClaim::where('vehicle_id', $vehicle->id)->pluck('proof_storage_key'))
+            ->all();
+
+        $label = trim($vehicle->make.' '.$vehicle->model).' (شاصي ...'.$vehicle->chassis_last4.')';
+
+        DB::transaction(function () use ($vehicle, $audit, $label): void {
+            $audit->record($this->admin(), 'vehicle.deleted', Vehicle::class, $vehicle->id, $label);
+            $vehicle->delete();
+        });
+
+        $disk = Storage::disk(config('filesystems.attachments_disk'));
+        foreach ($storageKeys as $key) {
+            $disk->delete($key);
+        }
+
+        return redirect()->route('admin.vehicles.index')->with('status', 'تم حذف السيارة نهائياً.');
     }
 
     private function admin(): AdminUser
