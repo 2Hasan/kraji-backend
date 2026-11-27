@@ -30,6 +30,14 @@
                     <button class="btn btn-green btn-sm" type="submit">تفعيل</button>
                   </form>
                 @endif
+                <details>
+                  <summary class="sm2">استبدال الملف</summary>
+                  <form method="POST" action="{{ route('admin.plate-templates.replace-svg', $template) }}" enctype="multipart/form-data">
+                    @csrf
+                    <input class="input" name="svg" type="file" accept=".svg,image/svg+xml" required>
+                    <button class="btn btn-primary btn-sm" type="submit">حفظ الملف</button>
+                  </form>
+                </details>
               </td>
             </tr>
           @empty

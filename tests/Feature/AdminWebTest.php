@@ -187,6 +187,51 @@ class AdminWebTest extends TestCase
         $this->assertSame(0, AuditLog::count());
     }
 
+    public function test_admin_replaces_template_file_with_fixed_svg_and_reruns_validation(): void
+    {
+        $disk = config('filesystems.attachments_disk');
+        Storage::fake($disk);
+        Storage::disk($disk)->put('plate-templates/PLC.svg', '<svg>POLICE {{plate_number}}</svg>');
+        $template = PlateTemplate::create([
+            'code' => 'PLC', 'name' => 'PLC', 'body_type' => 'PLC',
+            'svg_storage_key' => 'plate-templates/PLC.svg', 'status' => 'draft',
+            'validation_errors' => ['القالب يحتوي كلمة رسمية ممنوعة: POLICE'],
+        ]);
+        $this->actingAs($this->admin(), 'admin');
+
+        $fixed = UploadedFile::fake()->createWithContent('fixed.svg', '<svg><text>{{plate_number}}</text></svg>');
+        $this->post(route('admin.plate-templates.replace-svg', $template), ['svg' => $fixed])
+            ->assertRedirect(route('admin.plate-templates.index'));
+
+        $template->refresh();
+        $this->assertSame([], $template->validation_errors);
+        $this->assertSame('draft', $template->status);
+        $this->assertSame('<svg><text>{{plate_number}}</text></svg>', Storage::disk($disk)->get('plate-templates/PLC.svg'));
+        $this->post(route('admin.plate-templates.activate', $template))->assertRedirect(route('admin.plate-templates.index'));
+        $this->assertSame('active', $template->fresh()->status);
+    }
+
+    public function test_replacing_active_template_with_forbidden_svg_returns_it_to_draft(): void
+    {
+        $disk = config('filesystems.attachments_disk');
+        Storage::fake($disk);
+        $template = PlateTemplate::create([
+            'code' => 'classic', 'name' => 'كلاسيك', 'body_type' => 'sedan',
+            'svg_storage_key' => 'plate-templates/classic.svg', 'status' => 'active',
+            'validation_errors' => [],
+        ]);
+        $this->actingAs($this->admin(), 'admin');
+
+        $bad = UploadedFile::fake()->createWithContent('bad.svg', '<svg>POLICE {{plate_number}}</svg>');
+        $this->post(route('admin.plate-templates.replace-svg', $template), ['svg' => $bad])
+            ->assertRedirect(route('admin.plate-templates.index'));
+
+        $template->refresh();
+        $this->assertSame('draft', $template->status);
+        $this->assertContains('القالب يحتوي كلمة رسمية ممنوعة: POLICE', $template->validation_errors);
+        $this->post(route('admin.plate-templates.activate', $template))->assertSessionHasErrors('activate');
+    }
+
     public function test_logout_ends_session(): void
     {
         $this->actingAs($this->admin(), 'admin');
