@@ -35,7 +35,34 @@ class VehicleController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return view('admin.vehicles.index', compact('vehicles', 'q'));
+        $templates = PlateTemplate::where('status', 'active')
+            ->whereIn('code', $vehicles->pluck('plate_style')->filter()->unique())
+            ->get()
+            ->keyBy('code');
+
+        $disk = Storage::disk(config('filesystems.attachments_disk'));
+        $svgByCode = [];
+        $fontFaces = [];
+        foreach ($templates as $template) {
+            $svg = $disk->get($template->svg_storage_key);
+            $svgByCode[$template->code] = trim(preg_replace('/<\?xml[^>]*\?>/', '', $svg));
+            foreach ($template->fonts ?? [] as $file) {
+                $fontFaces[] = [
+                    'family' => pathinfo($file, PATHINFO_FILENAME),
+                    'url' => route('admin.plate-templates.font', [$template, $file]),
+                ];
+            }
+        }
+
+        // اللوحة المرسومة لكل سيارة (الرقم مكان {{plate_number}}، مهرّب للعرض).
+        $plateHtml = [];
+        foreach ($vehicles as $vehicle) {
+            if (isset($svgByCode[$vehicle->plate_style])) {
+                $plateHtml[$vehicle->id] = str_replace('{{plate_number}}', e($vehicle->plate_number ?: '— —'), $svgByCode[$vehicle->plate_style]);
+            }
+        }
+
+        return view('admin.vehicles.index', compact('vehicles', 'q', 'plateHtml', 'fontFaces'));
     }
 
     /** نموذج تعديل السيارة (المشرف فقط). الشاصي ما يتغيّر. */

@@ -323,6 +323,45 @@ class AdminWebTest extends TestCase
         Storage::disk($disk)->assertMissing('plate-templates/'.$template->code.'/fonts/PlateFont.ttf');
     }
 
+    public function test_font_name_mismatch_between_svg_and_fonts_is_reported(): void
+    {
+        Storage::fake(config('filesystems.attachments_disk'));
+        $this->actingAs($this->admin(), 'admin');
+
+        $zip = $this->zipUpload([
+            'plate.svg' => '<svg><text font-family="FE-Font, sans-serif">{{plate_number}}</text></svg>',
+            'fonts/FE-FONT.TTF' => 'FONTDATA',
+        ]);
+        $this->post(route('admin.plate-templates.store'), ['name' => 'خطأ الخط', 'svg' => $zip])
+            ->assertRedirect(route('admin.plate-templates.index'));
+
+        $template = PlateTemplate::where('name', 'خطأ الخط')->firstOrFail();
+        $this->assertNotEmpty($template->validation_errors);
+        $this->assertStringContainsString('FE-Font', implode(' ', $template->validation_errors));
+    }
+
+    public function test_vehicles_page_renders_template_plate_with_number(): void
+    {
+        $disk = config('filesystems.attachments_disk');
+        Storage::fake($disk);
+        Storage::disk($disk)->put('plate-templates/tpl-view.svg', '<svg><text>{{plate_number}}</text></svg>');
+        PlateTemplate::create([
+            'code' => 'tpl-view', 'name' => 'عرض', 'body_type' => 'عرض',
+            'svg_storage_key' => 'plate-templates/tpl-view.svg', 'status' => 'active', 'validation_errors' => [],
+        ]);
+        Vehicle::create([
+            'owner_user_id' => User::factory()->create()->id, 'chassis_no' => 'JN1AZ34E12345678Z',
+            'make' => 'Nissan', 'model' => '370Z', 'plate_style' => 'tpl-view', 'plate_number' => '98765',
+            'plate_visible' => true, 'status' => 'active',
+        ]);
+        $this->actingAs($this->admin(), 'admin');
+
+        $this->get(route('admin.vehicles.index'))
+            ->assertOk()
+            ->assertSee('<svg>', false)
+            ->assertSee('98765');
+    }
+
     public function test_zip_without_svg_is_rejected(): void
     {
         Storage::fake(config('filesystems.attachments_disk'));

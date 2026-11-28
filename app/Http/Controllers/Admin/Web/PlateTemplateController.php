@@ -9,6 +9,7 @@ use App\Services\PlateTemplateBundle;
 use App\Services\PlateTemplateValidator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -47,7 +48,7 @@ class PlateTemplateController extends Controller
             'svg_storage_key' => $key,
             'fonts' => array_keys($bundle['fonts']),
             'status' => 'draft',
-            'validation_errors' => $validator->validate($bundle['svg']),
+            'validation_errors' => $validator->validate($bundle['svg'], $this->fontNames($bundle['fonts'])),
         ]);
 
         return redirect()->route('admin.plate-templates.index')->with('status', 'تم رفع القالب كمسودة.');
@@ -65,7 +66,7 @@ class PlateTemplateController extends Controller
         $disk->deleteDirectory($this->fontsDir($template->code));
         $this->storeFonts($disk, $template->code, $bundle['fonts']);
 
-        $errors = $validator->validate($bundle['svg']);
+        $errors = $validator->validate($bundle['svg'], $this->fontNames($bundle['fonts']));
         $template->update([
             'status' => 'draft',
             'fonts' => array_keys($bundle['fonts']),
@@ -76,6 +77,20 @@ class PlateTemplateController extends Controller
             ->with('status', empty($errors)
                 ? 'تم استبدال ملف القالب '.$template->code.'. فعّله من جديد.'
                 : 'تم استبدال الملف لكن فيه أخطاء، القالب ما ينفعل.');
+    }
+
+    /** ملف خط القالب للمعاينة في صفحة السيارات (أي مشرف أو مراجع). */
+    public function font(PlateTemplate $template, string $file): Response
+    {
+        abort_unless(in_array($file, $template->fonts ?? [], true), 404);
+
+        $disk = Storage::disk(config('filesystems.attachments_disk'));
+        $path = 'plate-templates/'.$template->code.'/fonts/'.$file;
+        abort_unless($disk->exists($path), 404);
+
+        $type = str_ends_with(strtolower($file), '.otf') ? 'font/otf' : 'font/ttf';
+
+        return response($disk->get($path), 200, ['Content-Type' => $type]);
     }
 
     /** تعديل اسم القالب (نوع السيارة). الاسم هو body_type كذلك. */
@@ -116,6 +131,12 @@ class PlateTemplateController extends Controller
         $template->update(['status' => 'active']);
 
         return redirect()->route('admin.plate-templates.index')->with('status', 'تم تفعيل القالب.');
+    }
+
+    /** @param  array<string, string>  $fonts  @return array<int, string> أسماء الخطوط بدون الامتداد */
+    private function fontNames(array $fonts): array
+    {
+        return array_map(fn (string $file) => pathinfo($file, PATHINFO_FILENAME), array_keys($fonts));
     }
 
     private function fontsDir(string $code): string

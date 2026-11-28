@@ -3,6 +3,14 @@
 @section('heading', 'السيارات')
 
 @section('content')
+  <style>
+    @foreach ($fontFaces as $face)
+    @font-face { font-family: "{{ $face['family'] }}"; src: url("{{ $face['url'] }}"); }
+    @endforeach
+    .admin-plate { width: 220px; }
+    .admin-plate svg { width: 100%; height: auto; display: block; }
+  </style>
+
   <form method="GET" action="{{ route('admin.vehicles.index') }}" class="actions">
     <input class="input" style="max-width:320px" type="search" name="q" value="{{ $q }}" placeholder="ابحث بالماركة أو الموديل">
     <button class="btn btn-ghost" type="submit">بحث</button>
@@ -20,7 +28,10 @@
             <td class="muted hide-sm">{{ $vehicle->year }}</td>
             <td class="muted"><bdi dir="ltr">…{{ $vehicle->chassis_last4 }}</bdi></td>
             <td>
-              @if ($vehicle->plate_number)
+              @if (isset($plateHtml[$vehicle->id]))
+                <div class="admin-plate">{!! $plateHtml[$vehicle->id] !!}</div>
+                @if (! $vehicle->plate_visible)<span class="sm2 muted">مخفية عن الآخرين</span>@endif
+              @elseif ($vehicle->plate_number)
                 <bdi dir="ltr" class="plate-no">{{ $vehicle->plate_number }}</bdi>
                 @if (! $vehicle->plate_visible)<span class="sm2 muted">مخفية عن الآخرين</span>@endif
               @else

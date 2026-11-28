@@ -40,6 +40,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/plate-templates', [PlateTemplateController::class, 'index'])->name('plate-templates.index');
         Route::post('/plate-templates', [PlateTemplateController::class, 'store'])->name('plate-templates.store');
         Route::post('/plate-templates/{template}/svg', [PlateTemplateController::class, 'replaceSvg'])->name('plate-templates.replace-svg');
+        Route::get('/plate-templates/{template}/fonts/{file}', [PlateTemplateController::class, 'font'])->name('plate-templates.font');
         Route::post('/plate-templates/{template}/activate', [PlateTemplateController::class, 'activate'])->name('plate-templates.activate');
 
         // المشرف فقط
