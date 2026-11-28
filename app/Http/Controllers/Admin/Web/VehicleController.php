@@ -56,8 +56,7 @@ class VehicleController extends Controller
             'nickname' => ['nullable', 'string', 'max:60'],
             'plate_number' => ['nullable', 'string', 'max:20'],
             'plate_style' => ['required', 'string', 'max:40', function (string $attribute, mixed $value, \Closure $fail): void {
-                $legacy = in_array($value, ['classic', 'carbon', 'blue'], true);
-                if (! $legacy && ! PlateTemplate::where('code', $value)->where('status', 'active')->exists()) {
+                if (! PlateTemplate::where('code', $value)->where('status', 'active')->exists()) {
                     $fail('القالب المختار غير متوفر.');
                 }
             }],

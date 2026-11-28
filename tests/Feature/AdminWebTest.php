@@ -232,6 +232,138 @@ class AdminWebTest extends TestCase
         $this->post(route('admin.plate-templates.activate', $template))->assertSessionHasErrors('activate');
     }
 
+    public function test_admin_deletes_unused_template_and_its_file(): void
+    {
+        $disk = config('filesystems.attachments_disk');
+        Storage::fake($disk);
+        Storage::disk($disk)->put('plate-templates/old.svg', '<svg>{{plate_number}}</svg>');
+        $template = PlateTemplate::create([
+            'code' => 'tpl-old', 'name' => 'قديم', 'body_type' => 'قديم',
+            'svg_storage_key' => 'plate-templates/old.svg', 'status' => 'draft', 'validation_errors' => [],
+        ]);
+        $this->actingAs($this->admin(), 'admin');
+
+        $this->post(route('admin.plate-templates.destroy', $template))
+            ->assertRedirect(route('admin.plate-templates.index'));
+
+        $this->assertDatabaseMissing('plate_templates', ['id' => $template->id]);
+        Storage::disk($disk)->assertMissing('plate-templates/old.svg');
+    }
+
+    public function test_template_used_by_a_vehicle_cannot_be_deleted(): void
+    {
+        $disk = config('filesystems.attachments_disk');
+        Storage::fake($disk);
+        Storage::disk($disk)->put('plate-templates/used.svg', '<svg>{{plate_number}}</svg>');
+        $template = PlateTemplate::create([
+            'code' => 'tpl-used', 'name' => 'مستخدم', 'body_type' => 'مستخدم',
+            'svg_storage_key' => 'plate-templates/used.svg', 'status' => 'active', 'validation_errors' => [],
+        ]);
+        Vehicle::create([
+            'owner_user_id' => User::factory()->create()->id, 'chassis_no' => 'JN1AZ34E12345678Y',
+            'make' => 'Nissan', 'model' => '370Z', 'plate_style' => 'tpl-used', 'status' => 'active',
+        ]);
+        $this->actingAs($this->admin(), 'admin');
+
+        $this->post(route('admin.plate-templates.destroy', $template))
+            ->assertSessionHasErrors('delete');
+
+        $this->assertDatabaseHas('plate_templates', ['id' => $template->id]);
+        Storage::disk($disk)->assertExists('plate-templates/used.svg');
+    }
+
+    private function zipUpload(array $entries): UploadedFile
+    {
+        $path = tempnam(sys_get_temp_dir(), 'tpl').'.zip';
+        $zip = new \ZipArchive;
+        $zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        foreach ($entries as $name => $contents) {
+            $zip->addFromString($name, $contents);
+        }
+        $zip->close();
+
+        return new UploadedFile($path, 'plate.zip', 'application/zip', null, true);
+    }
+
+    public function test_zip_template_stores_svg_and_fonts_and_serves_fonts_only_when_active(): void
+    {
+        $disk = config('filesystems.attachments_disk');
+        Storage::fake($disk);
+        $admin = $this->admin();
+        $this->actingAs($admin, 'admin');
+
+        $zip = $this->zipUpload([
+            'plate.svg' => '<svg><text font-family="PlateFont">{{plate_number}}</text></svg>',
+            'FONTS/PlateFont.ttf' => 'FONTDATA',
+        ]);
+        $this->post(route('admin.plate-templates.store'), ['name' => 'خصوصي', 'svg' => $zip])
+            ->assertRedirect(route('admin.plate-templates.index'))
+            ->assertSessionHasNoErrors();
+
+        $template = PlateTemplate::where('name', 'خصوصي')->firstOrFail();
+        $this->assertSame(['PlateFont.ttf'], $template->fonts);
+        $this->assertSame('FONTDATA', Storage::disk($disk)->get('plate-templates/'.$template->code.'/fonts/PlateFont.ttf'));
+        $this->assertSame([], $template->validation_errors);
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $this->get("/api/plate-templates/{$template->code}/fonts/PlateFont.ttf")->assertNotFound();
+
+        $this->actingAs($admin, 'admin');
+        $this->post(route('admin.plate-templates.activate', $template));
+        Sanctum::actingAs($user);
+        $this->get("/api/plate-templates/{$template->code}/fonts/PlateFont.ttf")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'font/ttf');
+        $this->get("/api/plate-templates/{$template->code}/fonts/Other.ttf")->assertNotFound();
+        $this->getJson('/api/plate-templates')->assertJsonFragment(['fonts' => ['PlateFont.ttf']]);
+
+        $this->actingAs($admin, 'admin');
+        $this->post(route('admin.plate-templates.destroy', $template));
+        Storage::disk($disk)->assertMissing('plate-templates/'.$template->code.'/fonts/PlateFont.ttf');
+    }
+
+    public function test_zip_without_svg_is_rejected(): void
+    {
+        Storage::fake(config('filesystems.attachments_disk'));
+        $this->actingAs($this->admin(), 'admin');
+
+        $zip = $this->zipUpload(['FONTS/PlateFont.ttf' => 'FONTDATA']);
+        $this->post(route('admin.plate-templates.store'), ['name' => 'بدون', 'svg' => $zip])
+            ->assertSessionHasErrors('svg');
+
+        $this->assertDatabaseMissing('plate_templates', ['name' => 'بدون']);
+    }
+
+    public function test_admin_renames_template_and_body_type_follows(): void
+    {
+        $template = PlateTemplate::create([
+            'code' => 'tpl-ren', 'name' => 'قديم', 'body_type' => 'قديم',
+            'svg_storage_key' => 'plate-templates/ren.svg', 'status' => 'active', 'validation_errors' => [],
+        ]);
+        $this->actingAs($this->admin(), 'admin');
+
+        $this->post(route('admin.plate-templates.rename', $template), ['name' => 'خصوصي'])
+            ->assertRedirect(route('admin.plate-templates.index'));
+
+        $template->refresh();
+        $this->assertSame('خصوصي', $template->name);
+        $this->assertSame('خصوصي', $template->body_type);
+    }
+
+    public function test_reviewer_cannot_delete_template(): void
+    {
+        $template = PlateTemplate::create([
+            'code' => 'tpl-keep', 'name' => 'يبقى', 'body_type' => 'يبقى',
+            'svg_storage_key' => 'plate-templates/keep.svg', 'status' => 'draft', 'validation_errors' => [],
+        ]);
+        $this->actingAs($this->admin('reviewer'), 'admin');
+
+        $this->post(route('admin.plate-templates.destroy', $template))->assertForbidden();
+
+        $this->assertDatabaseHas('plate_templates', ['id' => $template->id]);
+    }
+
     public function test_logout_ends_session(): void
     {
         $this->actingAs($this->admin(), 'admin');

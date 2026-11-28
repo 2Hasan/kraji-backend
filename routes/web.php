@@ -50,6 +50,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/vehicles/{vehicle}/restore', [VehicleController::class, 'restore'])->name('vehicles.restore');
             Route::post('/vehicles/{vehicle}/destroy', [VehicleController::class, 'destroy'])->name('vehicles.destroy');
 
+            Route::post('/plate-templates/{template}/rename', [PlateTemplateController::class, 'rename'])->name('plate-templates.rename');
+            Route::post('/plate-templates/{template}/destroy', [PlateTemplateController::class, 'destroy'])->name('plate-templates.destroy');
+
             Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
             Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');
             Route::post('/staff/{reviewer}/suspend', [StaffController::class, 'suspend'])->name('staff.suspend');

@@ -45,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/devices', [DeviceController::class, 'store']);
     Route::get('/plate-templates', [PlateTemplateController::class, 'index']);
     Route::get('/plate-templates/{code}/svg', [PlateTemplateController::class, 'svg']);
+    Route::get('/plate-templates/{code}/fonts/{file}', [PlateTemplateController::class, 'font']);
     Route::get('/service-types', [ServiceTypeController::class, 'index']);
 });
 

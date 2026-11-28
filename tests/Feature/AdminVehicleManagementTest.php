@@ -36,17 +36,21 @@ class AdminVehicleManagementTest extends TestCase
     public function test_admin_edits_vehicle_fields_and_the_change_is_audited(): void
     {
         $vehicle = $this->vehicle();
+        PlateTemplate::create([
+            'code' => 'tpl-carbon', 'name' => 'نقل خاص', 'body_type' => 'نقل خاص',
+            'svg_storage_key' => 'plate-templates/tpl-carbon.svg', 'status' => 'active', 'validation_errors' => [],
+        ]);
         $this->actingAs($this->admin(), 'admin');
 
         $this->post(route('admin.vehicles.update', $vehicle), [
             'make' => 'Nissan', 'model' => '370Z', 'year' => 2016, 'nickname' => 'الحمراء',
-            'plate_number' => '12345', 'plate_style' => 'carbon',
+            'plate_number' => '12345', 'plate_style' => 'tpl-carbon',
         ])->assertRedirect(route('admin.vehicles.index'));
 
         $vehicle->refresh();
         $this->assertSame('الحمراء', $vehicle->nickname);
         $this->assertSame('12345', $vehicle->plate_number);
-        $this->assertSame('carbon', $vehicle->plate_style);
+        $this->assertSame('tpl-carbon', $vehicle->plate_style);
         $this->assertFalse($vehicle->plate_visible);
         $this->assertSame('JN1AZ34E12345678X', $vehicle->chassis_no);
         $this->assertDatabaseHas('audit_logs', ['action' => 'vehicle.updated', 'subject_id' => $vehicle->id]);

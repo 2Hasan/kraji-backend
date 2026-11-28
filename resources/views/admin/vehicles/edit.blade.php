@@ -13,11 +13,8 @@
       <div class="field"><label class="label" for="v-nick">الاسم المختصر</label><input class="input" id="v-nick" name="nickname" maxlength="60" value="{{ old('nickname', $vehicle->nickname) }}"></div>
       <div class="field"><label class="label" for="v-plate">رقم اللوحة</label><input class="input" id="v-plate" name="plate_number" maxlength="20" value="{{ old('plate_number', $vehicle->plate_number) }}"></div>
       <div class="field">
-        <label class="label" for="v-style">نوع السيارة (القالب)</label>
+        <label class="label" for="v-style">نوع السيارة</label>
         <select class="input" id="v-style" name="plate_style" required>
-          <option value="classic" @selected(old('plate_style', $vehicle->plate_style) === 'classic')>أبيض (افتراضي)</option>
-          <option value="carbon" @selected(old('plate_style', $vehicle->plate_style) === 'carbon')>داكن (افتراضي)</option>
-          <option value="blue" @selected(old('plate_style', $vehicle->plate_style) === 'blue')>أزرق (افتراضي)</option>
           @foreach ($templates as $template)
             <option value="{{ $template->code }}" @selected(old('plate_style', $vehicle->plate_style) === $template->code)>{{ $template->name }}</option>
           @endforeach

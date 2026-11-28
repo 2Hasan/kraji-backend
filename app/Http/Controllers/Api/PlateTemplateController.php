@@ -21,7 +21,22 @@ class PlateTemplateController extends Controller
             $query->where('body_type', $data['body_type']);
         }
 
-        return response()->json($query->orderBy('body_type')->get(['id', 'code', 'name', 'body_type']));
+        return response()->json($query->orderBy('body_type')->get(['id', 'code', 'name', 'body_type', 'fonts']));
+    }
+
+    /** ملف خط من فولدر FONTS للقالب المفعّل فقط. */
+    public function font(string $code, string $file): Response
+    {
+        $template = PlateTemplate::where('code', $code)->where('status', 'active')->firstOrFail();
+        abort_unless(in_array($file, $template->fonts ?? [], true), 404);
+
+        $disk = Storage::disk(config('filesystems.attachments_disk'));
+        $path = 'plate-templates/'.$code.'/fonts/'.$file;
+        abort_unless($disk->exists($path), 404);
+
+        $type = str_ends_with(strtolower($file), '.otf') ? 'font/otf' : 'font/ttf';
+
+        return response($disk->get($path), 200, ['Content-Type' => $type]);
     }
 
     /** ملف SVG للقالب المفعّل فقط، والتطبيق يستبدل {{plate_number}} بالرقم. */

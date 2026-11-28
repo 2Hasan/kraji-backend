@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlateTemplate;
+use App\Models\Vehicle;
+use App\Services\PlateTemplateBundle;
 use App\Services\PlateTemplateValidator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,6 +14,10 @@ use Illuminate\View\View;
 
 class PlateTemplateController extends Controller
 {
+    private const UPLOAD_RULES = [
+        'file', 'mimetypes:image/svg+xml,text/plain,text/xml,application/zip,application/x-zip-compressed', 'max:5120',
+    ];
+
     public function index(): View
     {
         return view('admin.plate-templates.index', [
@@ -23,21 +29,25 @@ class PlateTemplateController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:40'],
-            'svg' => ['required', 'file', 'mimetypes:image/svg+xml,text/plain,text/xml', 'max:512'],
+            'svg' => ['required', ...self::UPLOAD_RULES],
         ]);
 
+        $bundle = PlateTemplateBundle::read($request->file('svg'));
         $code = PlateTemplate::newCode();
-        $svg = file_get_contents($request->file('svg')->getRealPath());
-        $key = Storage::disk(config('filesystems.attachments_disk'))
-            ->putFileAs('plate-templates', $request->file('svg'), $code.'.svg');
+        $disk = Storage::disk(config('filesystems.attachments_disk'));
+
+        $key = 'plate-templates/'.$code.'.svg';
+        $disk->put($key, $bundle['svg']);
+        $this->storeFonts($disk, $code, $bundle['fonts']);
 
         PlateTemplate::create([
             'code' => $code,
             'name' => $data['name'],
             'body_type' => $data['name'],
             'svg_storage_key' => $key,
+            'fonts' => array_keys($bundle['fonts']),
             'status' => 'draft',
-            'validation_errors' => $validator->validate($svg),
+            'validation_errors' => $validator->validate($bundle['svg']),
         ]);
 
         return redirect()->route('admin.plate-templates.index')->with('status', 'تم رفع القالب كمسودة.');
@@ -46,16 +56,19 @@ class PlateTemplateController extends Controller
     public function replaceSvg(Request $request, PlateTemplate $template, PlateTemplateValidator $validator): RedirectResponse
     {
         $request->validate([
-            'svg' => ['required', 'file', 'mimetypes:image/svg+xml,text/plain,text/xml', 'max:512'],
+            'svg' => ['required', ...self::UPLOAD_RULES],
         ]);
 
-        $svg = file_get_contents($request->file('svg')->getRealPath());
+        $bundle = PlateTemplateBundle::read($request->file('svg'));
         $disk = Storage::disk(config('filesystems.attachments_disk'));
-        $disk->put($template->svg_storage_key, $svg);
+        $disk->put($template->svg_storage_key, $bundle['svg']);
+        $disk->deleteDirectory($this->fontsDir($template->code));
+        $this->storeFonts($disk, $template->code, $bundle['fonts']);
 
-        $errors = $validator->validate($svg);
+        $errors = $validator->validate($bundle['svg']);
         $template->update([
             'status' => 'draft',
+            'fonts' => array_keys($bundle['fonts']),
             'validation_errors' => $errors,
         ]);
 
@@ -63,6 +76,34 @@ class PlateTemplateController extends Controller
             ->with('status', empty($errors)
                 ? 'تم استبدال ملف القالب '.$template->code.'. فعّله من جديد.'
                 : 'تم استبدال الملف لكن فيه أخطاء، القالب ما ينفعل.');
+    }
+
+    /** تعديل اسم القالب (نوع السيارة). الاسم هو body_type كذلك. */
+    public function rename(Request $request, PlateTemplate $template): RedirectResponse
+    {
+        $data = $request->validate(['name' => ['required', 'string', 'max:40']]);
+
+        $template->update(['name' => $data['name'], 'body_type' => $data['name']]);
+
+        return redirect()->route('admin.plate-templates.index')->with('status', 'تم تعديل اسم القالب.');
+    }
+
+    /** حذف نهائي للقالب، ما يُسمح إذا فيه سيارات تستخدمه. */
+    public function destroy(PlateTemplate $template): RedirectResponse
+    {
+        $inUse = Vehicle::where('plate_style', $template->code)->count();
+        if ($inUse > 0) {
+            return redirect()->route('admin.plate-templates.index')
+                ->withErrors(['delete' => 'ما ينحذف القالب "'.$template->name.'"، لأن '.$inUse.' سيارة تستخدمه.']);
+        }
+
+        $disk = Storage::disk(config('filesystems.attachments_disk'));
+        $disk->delete($template->svg_storage_key);
+        $disk->deleteDirectory($this->fontsDir($template->code));
+        $name = $template->name;
+        $template->delete();
+
+        return redirect()->route('admin.plate-templates.index')->with('status', 'تم حذف القالب "'.$name.'".');
     }
 
     public function activate(PlateTemplate $template): RedirectResponse
@@ -75,5 +116,18 @@ class PlateTemplateController extends Controller
         $template->update(['status' => 'active']);
 
         return redirect()->route('admin.plate-templates.index')->with('status', 'تم تفعيل القالب.');
+    }
+
+    private function fontsDir(string $code): string
+    {
+        return 'plate-templates/'.$code.'/fonts';
+    }
+
+    /** @param  array<string, string>  $fonts */
+    private function storeFonts($disk, string $code, array $fonts): void
+    {
+        foreach ($fonts as $name => $contents) {
+            $disk->put($this->fontsDir($code).'/'.$name, $contents);
+        }
     }
 }
